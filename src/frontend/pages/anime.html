@@ -1,0 +1,373 @@
+<div id="anime-detail" class="skeleton-page">
+  <div class="skeleton" style="height: 400px; margin-bottom: 24px;"></div>
+  <div class="skeleton" style="height: 100px; margin-bottom: 24px;"></div>
+</div>
+
+<script type="module">
+  import { apiFetch, showToast } from '/assets/app.js';
+
+  async function init() {
+    const path = window.location.pathname;
+    const malId = path.split('/').pop();
+    if (!malId || isNaN(malId)) return;
+
+    try {
+      const [anime, history, settings] = await Promise.all([
+        apiFetch(`/api/anime/${malId}`),
+        apiFetch(`/api/history/${malId}`).catch(() => null),
+        apiFetch('/api/settings')
+      ]);
+
+      renderAnime(anime, history, settings);
+    } catch (err) {
+      document.getElementById('anime-detail').innerHTML = '<h1>Failed to load anime details</h1>';
+    }
+  }
+
+  function renderAnime(a, h, s) {
+    const container = document.getElementById('anime-detail');
+    container.classList.remove('skeleton-page');
+    
+    container.innerHTML = `
+      <div class="anime-hero" style="display: flex; gap: 48px; margin-bottom: 56px; position: relative; padding: 40px; border-radius: var(--border-radius); align-items: flex-start; overflow: hidden; background: var(--card-bg); border: 2px solid transparent; box-shadow: 0 10px 30px rgba(0,0,0,0.15); backdrop-filter: blur(12px);">
+        <!-- Blurred background image -->
+        <div style="position: absolute; inset: 0; background-image: url('${a.poster}'); background-size: cover; background-position: center; filter: blur(50px) brightness(0.4) saturate(1.5); z-index: 0; opacity: 0.5;"></div>
+        
+        <img src="${a.poster}" alt="${a.title}" style="width: 280px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px var(--accent-glow); flex-shrink: 0; position: relative; z-index: 1;">
+        
+        <div class="anime-info" style="flex: 1; position: relative; z-index: 1;">
+          <h1 style="font-size: 3.2rem; line-height: 1.1; margin-bottom: 16px; text-shadow: 0 4px 12px rgba(0,0,0,0.3); color: var(--text-main);">${a.titleEn || a.title}</h1>
+          
+          <div style="display: flex; gap: 16px; margin-bottom: 24px; align-items: center; flex-wrap: wrap;">
+            <span style="background: var(--accent); color: white; padding: 6px 14px; border-radius: 12px; font-size: 0.95rem; font-weight: 700; font-family: 'M PLUS Rounded 1c', sans-serif;">★ ${a.score || 'N/A'}</span>
+            <span style="color: var(--text-muted); font-size: 0.95rem; font-weight: 700;">${a.year || ''} <span style="margin: 0 8px; color: var(--card-border);">•</span> ${a.type} <span style="margin: 0 8px; color: var(--card-border);">•</span> ${a.status}</span>
+            <span style="color: var(--accent); font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">${a.episodes || '?'} EPISODES</span>
+          </div>
+          
+          <div class="synopsis" style="margin-bottom: 40px; color: #e2e8f0; line-height: 1.7; max-width: 900px; font-size: 1.05rem; font-weight: 600;">
+            ${a.synopsis || 'No synopsis available.'}
+          </div>
+          
+          <div class="actions" style="display: flex; gap: 24px; margin-bottom: 40px; align-items: flex-end;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label style="font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 0.9rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">Stream Quality</label>
+              <select id="quality-selector" style="padding: 12px 20px; border-radius: 12px; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--card-border); cursor: pointer; font-size: 1rem; transition: var(--transition); backdrop-filter: blur(5px);">
+                ${['best', '1080', '720', '480', '360'].map(q => `<option value="${q}" ${q === s.defaultQuality ? 'selected' : ''}>${q}</option>`).join('')}
+              </select>
+            </div>
+            <button id="add-to-list" class="btn-primary" style="padding: 12px 32px; display: flex; align-items: center; gap: 10px; font-size: 1.1rem; border-radius: 16px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              Add to List
+            </button>
+          </div>
+          
+          ${(() => {
+            if (!a.relations || a.relations.length === 0) return '';
+            const tags = a.relations.flatMap(r => r.entry.map(e => ({ relation: r.relation, name: e.name, malId: e.malId })));
+            
+            return `
+              <div class="relations" style="border-top: 1px solid var(--card-border); padding-top: 24px;">
+                <h3 style="font-size: 0.95rem; margin-bottom: 16px; color: var(--text-muted); font-family: 'M PLUS Rounded 1c', sans-serif;">RELATED MEDIA</h3>
+                <div id="relations-container" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  ${tags.map((t, i) => `
+                    <a href="/anime/${t.malId}" class="relation-tag" data-link 
+                       style="font-size: 0.9rem; font-weight: 700; background: rgba(255, 255, 255, 0.1); padding: 8px 16px; border-radius: 12px; color: var(--text-main); transition: var(--transition);
+                       display: ${i < 5 ? 'inline-block' : 'none'};">
+                      <span style="color: var(--accent); margin-right: 6px; font-family: 'M PLUS Rounded 1c', sans-serif;">${t.relation}</span> ${t.name}
+                    </a>
+                  `).join('')}
+                  
+                  ${tags.length > 5 ? `
+                    <button id="toggle-relations" style="font-size: 0.9rem; font-weight: 700; background: transparent; color: var(--accent); padding: 8px 16px; border: 2px solid var(--accent); border-radius: 12px; cursor: pointer;">
+                      SHOW ALL
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          })()}
+        </div>
+      </div>
+
+      <div class="episodes-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <h2 style="margin: 0;">Episodes</h2>
+            <button id="refresh-anime" title="Refresh data" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; transition: var(--transition);">
+              ↻
+            </button>
+            <select id="ep-range-selector" style="display: none; background: var(--card-bg); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 6px; font-size: 0.9rem;">
+              <!-- Ranges will be populated here -->
+            </select>
+          </div>
+          <div id="ep-range-info" style="color: var(--text-muted); font-size: 0.9rem;"></div>
+        </div>
+        <div id="episode-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+          <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px;">Loading episodes...</div>
+        </div>
+        <div id="load-more-container" style="text-align: center; margin-top: 32px; display: none;">
+          <button id="load-more-btn" style="background: var(--card-bg); color: var(--text-main); padding: 12px 40px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; margin-bottom: 16px;">Load More Episodes</button>
+        </div>
+        <div style="text-align: center; margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 24px;">
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">Can't find a newly released episode?</p>
+          <button id="manual-play-btn" style="background: rgba(56, 189, 248, 0.1); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 0.85rem;">
+            🔍 Manual Play
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Paginated episode rendering
+    let episodes = a.episodes || 0;
+    const epList = document.getElementById('episode-list');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    const loadMoreContainer = document.getElementById('load-more-container');
+    const rangeInfo = document.getElementById('ep-range-info');
+    const rangeSelector = document.getElementById('ep-range-selector');
+    
+    let currentBatch = 0;
+    const BATCH_SIZE = 100;
+    let episodeTitles = {};
+    let isLoading = false;
+
+    const populateRanges = (total) => {
+      if (total <= BATCH_SIZE) {
+        rangeSelector.style.display = 'none';
+        return;
+      }
+      rangeSelector.style.display = 'block';
+      let options = '';
+      for (let i = 0; i < Math.ceil(total / BATCH_SIZE); i++) {
+        const start = i * BATCH_SIZE + 1;
+        const end = Math.min((i + 1) * BATCH_SIZE, total);
+        options += `<option value="${i}">${start} - ${end}</option>`;
+      }
+      rangeSelector.innerHTML = options;
+    };
+
+    const renderBatch = async (batchIdx = null) => {
+      if (batchIdx !== null) {
+        currentBatch = batchIdx;
+        epList.innerHTML = '';
+      }
+
+      const start = currentBatch * BATCH_SIZE + 1;
+      let end = Math.min((currentBatch + 1) * BATCH_SIZE, episodes || 9999);
+      
+      const jikanPage = Math.floor(start / 100) + 1;
+      try {
+        const { episodes: titles, pagination } = await apiFetch(`/api/anime/${a.malId}/episodes?page=${jikanPage}`);
+        titles.forEach(t => episodeTitles[t.malId] = t.title);
+        
+        // If episodes was null or we found more via pagination
+        const lastVisiblePage = pagination?.last_visible_page || 1;
+        
+        // Find the actual last aired episode in this batch
+        const now = new Date();
+        const airedTitles = titles.filter(t => !t.aired || new Date(t.aired) <= now);
+        
+        // If we're on the last visible page, the real total is the max aired ID on this page
+        if (jikanPage === lastVisiblePage) {
+          const maxAired = Math.max(...airedTitles.map(t => t.malId), 0);
+          if (maxAired > 0) episodes = maxAired;
+        } else {
+          // Otherwise, we still estimate but we'll refine as we load more pages
+          const estimatedTotal = lastVisiblePage * 100;
+          if (!a.episodes || estimatedTotal > episodes) {
+            episodes = estimatedTotal;
+          }
+        }
+        populateRanges(episodes);
+      } catch (e) {}
+
+      end = Math.min((currentBatch + 1) * BATCH_SIZE, episodes || (currentBatch + 1) * BATCH_SIZE);
+
+      let html = '';
+      for (let i = start; i <= end; i++) {
+        const epHistory = h?.episodes[String(i)];
+        const isCompleted = epHistory?.completed;
+        const cachedTitle = episodeTitles[i];
+        
+        html += `
+          <div class="episode-row ep-node-${i}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--card-bg); border-radius: var(--border-radius); border: 1px solid rgba(255,255,255,0.05); transition: var(--transition); cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; white-space: nowrap;">
+              <span style="font-weight: 700; color: var(--accent); width: 40px; flex-shrink: 0;">${i}</span>
+              <span class="ep-title" style="font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis;">${cachedTitle || `Episode ${i}`}</span>
+              ${isCompleted ? '<span style="color: var(--success); font-size: 0.8rem;">✓</span>' : ''}
+            </div>
+            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+              <button class="watch-btn" data-ep="${i}" style="background: none; color: var(--accent); padding: 6px; font-size: 0.85rem; font-weight: 600;">Watch</button>
+            </div>
+          </div>
+        `;
+      }
+      
+      if (batchIdx !== null || currentBatch === 0) epList.innerHTML = '';
+      if (html) {
+        epList.insertAdjacentHTML('beforeend', html);
+      } else if (currentBatch === 0) {
+        epList.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px;">No episodes found.</div>';
+      }
+
+      currentBatch++;
+      rangeInfo.textContent = `Showing ${start} - ${end} of ${episodes || '?'}`;
+      loadMoreContainer.style.display = (episodes && end >= episodes) ? 'none' : 'block';
+      
+      if (rangeSelector.value != (currentBatch - 1)) {
+        rangeSelector.value = currentBatch - 1;
+      }
+
+      bindEvents(start, end);
+      isLoading = false;
+    };
+
+    if (episodes > 0) populateRanges(episodes);
+
+    rangeSelector.onchange = (e) => {
+      renderBatch(parseInt(e.target.value));
+    };
+
+    renderBatch();
+    loadMoreBtn.onclick = () => renderBatch();
+
+    const bindEvents = (start, end) => {
+      for (let i = start; i <= end; i++) {
+        const row = epList.querySelector(`.ep-node-${i}`);
+        if (!row) continue;
+        const btn = row.querySelector('.watch-btn');
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          handleWatch(a, i, s);
+        };
+        row.onclick = () => btn.click();
+      }
+    };
+
+    // Toggle relations
+    const toggleBtn = document.getElementById('toggle-relations');
+    if (toggleBtn) {
+      toggleBtn.onclick = () => {
+        const tags = document.querySelectorAll('.relation-tag');
+        tags.forEach(t => t.style.display = 'inline-block');
+        toggleBtn.style.display = 'none';
+      };
+    }
+
+    // Add to list
+    const addBtn = document.getElementById('add-to-list');
+    if (addBtn) {
+      addBtn.onclick = async () => {
+        try {
+          await apiFetch(`/api/mal/${a.malId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: a.title,
+              episodes: a.episodes,
+              posterUrl: a.poster
+            })
+          });
+          showToast('Added to My List!', 'success');
+        } catch (e) {
+          showToast('Failed to add to list', 'error');
+        }
+      };
+    }
+
+    // Refresh button
+    const refreshBtn = document.getElementById('refresh-anime');
+    if (refreshBtn) {
+      refreshBtn.onclick = async () => {
+        refreshBtn.style.animation = 'spin 1s linear infinite';
+        try {
+          await apiFetch(`/api/anime/${a.malId}/refresh`, { method: 'POST' });
+          window.location.reload();
+        } catch (e) {
+          showToast('Failed to refresh data', 'error');
+          refreshBtn.style.animation = '';
+        }
+      };
+    }
+
+    // Manual Play button
+    const manualBtn = document.getElementById('manual-play-btn');
+    if (manualBtn) {
+      manualBtn.onclick = () => {
+        const query = prompt('Search query for ani-cli (e.g., "Wistoria"):', a.title.split('Season')[0].trim());
+        if (!query) return;
+        const ep = prompt(`Enter episode number for "${query}":`, (episodes || 0) + 1);
+        if (ep && !isNaN(ep)) {
+          handleWatch({ ...a, title: query }, parseInt(ep), s);
+        }
+      };
+    }
+  }
+
+  async function handleWatch(anime, ep, settings) {
+    const quality = document.getElementById('quality-selector').value;
+    showToast(`Searching for Episode ${ep}...`);
+    
+    try {
+      const streamData = await apiFetch(`/api/stream?q=${encodeURIComponent(anime.title)}&index=1&ep=${ep}&quality=${quality}&malId=${anime.malId || ''}`);
+      
+      // If all scrapers failed, open AnimePahe in user's browser as fallback
+      if (streamData.browserFallback) {
+        showToast(streamData.message || 'Opening in browser...', 'warning');
+        window.open(streamData.url, '_blank');
+        return;
+      }
+
+      const url = streamData.url;
+      
+      if (settings.defaultPlayer !== 'browser') {
+        await apiFetch('/api/stream/launch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            url, 
+            headers: streamData.headers,
+            title: `${anime.title} - E${ep}`,
+            malId: anime.malId,
+            ep: ep,
+            animeData: {
+              title: anime.title,
+              titleEn: anime.titleEn,
+              posterUrl: anime.poster,
+              totalEpisodes: anime.episodes,
+              isDub: false,
+              quality: quality
+            }
+          })
+        });
+        showToast(`Launched in ${settings.defaultPlayer.toUpperCase()}`, 'success');
+      } else {
+        window.location.href = `/player?url=${encodeURIComponent(url)}&title=${encodeURIComponent(anime.title)}&ep=${ep}&malId=${anime.malId}`;
+      }
+    } catch (err) {
+      showToast('Could not find stream', 'error');
+    }
+  }
+
+  async function handleDownload(anime, ep) {
+    const quality = document.getElementById('quality-selector').value;
+    try {
+      await apiFetch('/api/downloads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          malId: anime.malId,
+          title: anime.title,
+          animeQuery: anime.title,
+          animeIndex: 1,
+          episode: ep,
+          quality
+        })
+      });
+      showToast(`Added Episode ${ep} to downloads`, 'success');
+    } catch (err) {
+      showToast('Failed to queue download', 'error');
+    }
+  }
+
+  init();
+</script>

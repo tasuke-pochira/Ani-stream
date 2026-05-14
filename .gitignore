@@ -1,0 +1,56 @@
+# ══════════════════════════════════════════════════════
+#  AniStream .gitignore
+# ══════════════════════════════════════════════════════
+
+# ─── Node.js ──────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+
+# ─── Build Outputs ────────────────────────────────────
+dist/
+dist-bundle/
+build/
+*.exe
+*.msi
+*.zip
+installer/installer_output/
+
+# ─── Local Data & User Content ────────────────────────
+data/
+downloads/
+settings.json
+!package.json
+!package-lock.json
+
+# ─── Confidential: Scraper Implementations ────────────
+# These files contain provider-specific scraping logic,
+# domain endpoints, and bypass techniques.
+# They are excluded to protect the upstream sources.
+# See src/services/stream.example.js for the interface.
+src/services/stream.js
+src/services/anicli.js
+src/services/animepahe.js
+src/services/gogo.js
+src/services/kaa.js
+
+# ─── IDE & Editor ─────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── System Files ─────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ─── Dev / Scratch ────────────────────────────────────
+dev_docs/
+scratch/
+*.log

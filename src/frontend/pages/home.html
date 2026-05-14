@@ -1,0 +1,86 @@
+<div class="page-home">
+  <section id="continue-watching" style="display: none;">
+    <h2 style="margin-bottom: 16px;">Continue Watching</h2>
+    <div class="anime-grid" id="continue-grid"></div>
+  </section>
+
+  <section style="margin-top: 40px;">
+    <h2 style="margin-bottom: 16px;">Seasonal Anime</h2>
+    <div class="anime-grid" id="seasonal-grid">
+      <!-- Skeletons -->
+      <div class="skeleton" style="height: 300px;"></div>
+      <div class="skeleton" style="height: 300px;"></div>
+      <div class="skeleton" style="height: 300px;"></div>
+      <div class="skeleton" style="height: 300px;"></div>
+      <div class="skeleton" style="height: 300px;"></div>
+      <div class="skeleton" style="height: 300px;"></div>
+    </div>
+  </section>
+
+  <section style="margin-top: 40px;">
+    <h2 style="margin-bottom: 16px;">Top Rated</h2>
+    <div class="anime-grid" id="top-grid"></div>
+  </section>
+</div>
+
+<script type="module">
+  import { apiFetch } from '/assets/app.js';
+
+  async function init() {
+    // Fetch all sections in parallel
+    const [continueList, seasonal, top] = await Promise.all([
+      apiFetch('/api/history/continue').catch(() => []),
+      apiFetch('/api/anime/seasonal'),
+      apiFetch('/api/anime/top')
+    ]);
+
+    renderContinue(continueList);
+    renderGrid('seasonal-grid', seasonal);
+    renderGrid('top-grid', top);
+  }
+
+  function renderContinue(list) {
+    const section = document.getElementById('continue-watching');
+    const grid = document.getElementById('continue-grid');
+    if (list.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    grid.innerHTML = list.map(item => `
+      <a href="/anime/${item.malId}" class="anime-card" data-link>
+        <div style="position: relative;">
+          <img src="${item.posterUrl}" alt="${item.title}" onerror="this.src='/assets/no-poster.svg'">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.2);">
+            <div style="height: 100%; width: ${item.progressPercent}%; background: var(--accent);"></div>
+          </div>
+        </div>
+        <div class="anime-card-content">
+          <div class="anime-card-title">${item.title}</div>
+          <div class="anime-card-meta">Next: Episode ${item.nextEpisode}</div>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  function renderGrid(elementId, list) {
+    const grid = document.getElementById(elementId);
+    grid.innerHTML = list.map(item => `
+      <a href="/anime/${item.malId}" class="anime-card" data-link>
+        <img src="${item.poster}" alt="${item.title}" onerror="this.src='/assets/no-poster.svg'">
+        <div class="anime-card-content">
+          <div class="anime-card-title">${item.titleEn || item.title}</div>
+          <div class="anime-card-meta">${item.type || 'TV'} • ${item.score || 'N/A'} ★</div>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  // Handle SPA page load event
+  window.addEventListener('page-load', (e) => {
+    if (e.detail.path === '/') init();
+  }, { once: true });
+  
+  // Also run if already on page
+  init();
+</script>

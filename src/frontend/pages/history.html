@@ -1,0 +1,55 @@
+<div class="page-history">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h2>Watch History</h2>
+  </div>
+  <div id="history-list" style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="text-align: center; color: var(--text-muted); padding: 40px;">Loading history...</div>
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch } from '/assets/app.js';
+
+  async function init() {
+    try {
+      const history = await apiFetch('/api/history');
+      renderHistory(history);
+    } catch (e) {
+      document.getElementById('history-list').innerHTML = 
+        '<div style="text-align: center; color: var(--danger); padding: 40px;">Failed to load history</div>';
+    }
+  }
+
+  function renderHistory(items) {
+    const container = document.getElementById('history-list');
+    
+    if (!items || items.length === 0) {
+      container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No watch history yet.</div>';
+      return;
+    }
+
+    container.innerHTML = '<div class="anime-grid">' + items.map(item => `
+      <a href="/anime/${item.malId}" class="anime-card" data-link>
+        <div style="position: relative;">
+          <img src="${item.posterUrl}" alt="${item.title}" onerror="this.src='/assets/no-poster.svg'" style="aspect-ratio: 3/4.2; width: 100%; object-fit: cover;">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 6px; background: rgba(0,0,0,0.5);">
+            <div style="width: ${item.progressPercent || 0}%; background: var(--accent); height: 100%; box-shadow: 0 0 10px var(--accent);"></div>
+          </div>
+        </div>
+        <div class="anime-card-content">
+          <div class="anime-card-title">${item.titleEn || item.title}</div>
+          <div class="anime-card-meta" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--text-main); font-weight: 700;">EP ${Math.max(...Object.keys(item.episodes).map(Number))}</span>
+            <span>${new Date(item.lastWatched).toLocaleDateString()}</span>
+          </div>
+        </div>
+      </a>
+    `).join('') + '</div>';
+  }
+
+  window.addEventListener('page-load', (e) => {
+    if (e.detail.path === '/history') init();
+  }, { once: true });
+
+  init();
+</script>

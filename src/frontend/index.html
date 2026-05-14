@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniStream — Local Anime Streaming</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="icon" type="image/jpeg" href="/assets/fox_mask.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app-container">
+    <nav>
+      <div class="logo" style="display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-bottom: 24px;">
+        <img src="/assets/fox_mask.jpg" alt="Fox Mask" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); filter: drop-shadow(0 0 8px rgba(255, 117, 140, 0.4)); object-fit: cover;">
+        AniStream
+      </div>
+      <a href="/" class="nav-link" data-link>
+        <span class="icon">🏠</span> Home
+      </a>
+      <a href="/search" class="nav-link" data-link>
+        <span class="icon">🔍</span> Search
+      </a>
+      <a href="/mylist" class="nav-link" data-link>
+        <span class="icon">🔖</span> My List
+      </a>
+      <a href="/downloads" class="nav-link" data-link>
+        <span class="icon">📥</span> Downloads
+      </a>
+      <a href="/history" class="nav-link" data-link>
+        <span class="icon">🕒</span> History
+      </a>
+      <div style="flex: 1;"></div>
+      <a href="/settings" class="nav-link" data-link>
+        <span class="icon">⚙️</span> Settings
+      </a>
+      
+      <div style="margin-top: 16px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; color: var(--text-muted);">
+        Developed by <a href="https://www.instagram.com/3cstat1c.fl/" target="_blank" style="color: var(--accent); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+          @3cstat1c.fl <span style="font-size: 10px;">↗</span>
+        </a>
+      </div>
+    </nav>
+    <main id="app">
+      <!-- Pages will be injected here -->
+      <div class="skeleton-page">
+        <div class="skeleton" style="height: 40px; width: 300px; margin-bottom: 24px;"></div>
+        <div class="anime-grid">
+          <div class="skeleton" style="height: 300px;"></div>
+          <div class="skeleton" style="height: 300px;"></div>
+          <div class="skeleton" style="height: 300px;"></div>
+          <div class="skeleton" style="height: 300px;"></div>
+          <div class="skeleton" style="height: 300px;"></div>
+          <div class="skeleton" style="height: 300px;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/assets/app.js" type="module"></script>
+</body>
+</html>

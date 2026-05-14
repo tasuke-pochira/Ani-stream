@@ -1,0 +1,144 @@
+<div class="page-player" style="position: fixed; inset: 0; background: black; z-index: 2000; display: flex; flex-direction: column;">
+  <div class="player-header" style="padding: 20px; display: flex; align-items: center; gap: 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); position: absolute; top: 0; left: 0; right: 0; z-index: 10;">
+    <button onclick="history.back()" style="background: rgba(255,255,255,0.1); color: white; padding: 8px 16px;">← Back</button>
+    <div id="player-title" style="font-weight: 600; font-size: 1.2rem;"></div>
+  </div>
+
+  <video id="video-player" controls autoplay style="width: 100%; height: 100%; object-fit: contain;"></video>
+  
+  <div id="player-error" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 5;">
+    <div style="font-size: 3rem;">⚠️</div>
+    <div style="font-size: 1.2rem; color: var(--text-muted);" id="player-error-msg">Failed to load stream</div>
+    <button onclick="history.back()" style="background: var(--accent); color: white; padding: 10px 24px; border-radius: 8px;">Go Back</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script type="module">
+  import { showToast } from '/assets/app.js';
+
+  let ws;
+  let progressInterval;
+
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
+    const title = params.get('title');
+    const ep = params.get('ep');
+    const malId = params.get('malId');
+
+    if (!url) {
+      showToast('No stream URL provided', 'error');
+      history.back();
+      return;
+    }
+
+    document.getElementById('player-title').textContent = `${title} — Episode ${ep}`;
+    
+    setupPlayer(url);
+    setupWebSocket(malId, ep, title);
+  }
+
+  function setupPlayer(url) {
+    const video = document.getElementById('video-player');
+    const errorDiv = document.getElementById('player-error');
+    const errorMsg = document.getElementById('player-error-msg');
+    
+    // Detect URL type: .m3u8 = HLS, everything else = direct play
+    const isHLS = url.includes('.m3u8');
+    
+    if (isHLS && Hls.isSupported()) {
+      // HLS stream — use hls.js
+      const hls = new Hls({
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+      });
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('[player] HLS fatal error:', data);
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Try to recover from network errors
+            hls.startLoad();
+          } else {
+            showError('HLS stream failed to load. The source may be unavailable.');
+          }
+        }
+      });
+    } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS
+      video.src = url;
+    } else {
+      // Direct MP4/MKV/WebM — set src directly
+      video.src = url;
+    }
+
+    video.onerror = () => {
+      const code = video.error?.code;
+      const messages = {
+        1: 'Playback was aborted.',
+        2: 'A network error occurred while loading the video.',
+        3: 'The video format is not supported by your browser.',
+        4: 'The video source could not be loaded.',
+      };
+      showError(messages[code] || 'Unknown playback error.');
+    };
+
+    video.onloadeddata = () => {
+      // If the browser can decode audio but not the video codec (e.g. HEVC/H.265)
+      // the videoWidth will be 0 but the video will still "play".
+      if (video.videoWidth === 0) {
+        showError('Getting only audio? Your browser does not support this video codec (likely HEVC/H.265). Please go to Settings and change your Default Player to MPV.');
+      }
+    };
+
+    function showError(msg) {
+      errorDiv.style.display = 'flex';
+      errorMsg.textContent = msg;
+    }
+  }
+
+  function setupWebSocket(malId, ep, title) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}`);
+    const video = document.getElementById('video-player');
+
+    ws.onopen = () => {
+      // Start progress tracking every 5 seconds
+      progressInterval = setInterval(() => {
+        if (video.currentTime > 0 && !video.paused) {
+          ws.send(JSON.stringify({
+            type: 'player:progress',
+            malId: parseInt(malId),
+            episode: parseInt(ep),
+            seconds: Math.floor(video.currentTime),
+            duration: Math.floor(video.duration),
+            animeData: { title, titleEn: title, posterUrl: '' }
+          }));
+        }
+      }, 5000);
+    };
+
+    video.onended = () => {
+      ws.send(JSON.stringify({
+        type: 'player:complete',
+        malId: parseInt(malId),
+        episode: parseInt(ep),
+        animeData: { title, titleEn: title, posterUrl: '' }
+      }));
+      showToast('Episode completed!', 'success');
+    };
+
+    ws.onclose = () => {
+      clearInterval(progressInterval);
+    };
+  }
+
+  window.addEventListener('page-load', (e) => {
+    if (e.detail.path === '/player') init();
+  }, { once: true });
+
+  init();
+</script>

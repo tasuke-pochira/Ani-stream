@@ -1,0 +1,138 @@
+<div class="page-mallist">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h1>My List</h1>
+    <div style="display: flex; gap: 12px;">
+      <button id="export-btn" class="btn-primary" style="background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1);">📤 Export XML</button>
+      <button id="import-btn" class="btn-primary" style="background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1);">📥 Import XML</button>
+    </div>
+  </div>
+
+  <div class="tabs" style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; overflow-x: auto;">
+    <button class="tab active" data-status="all">All</button>
+    <button class="tab" data-status="watching">Watching</button>
+    <button class="tab" data-status="completed">Completed</button>
+    <button class="tab" data-status="on_hold">On Hold</button>
+    <button class="tab" data-status="dropped">Dropped</button>
+    <button class="tab" data-status="plan_to_watch">Plan to Watch</button>
+  </div>
+
+  <div id="list-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+</div>
+
+<script type="module">
+  import { apiFetch, showToast } from '/assets/app.js';
+
+  let currentStatus = 'all';
+  let fullList = {};
+
+  async function init() {
+    fullList = await apiFetch('/api/mal');
+    renderList();
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentStatus = tab.dataset.status;
+        renderList();
+      };
+    });
+
+    document.getElementById('export-btn').onclick = () => {
+      window.location.href = '/api/mal/export';
+    };
+
+    document.getElementById('import-btn').onclick = () => {
+      const xml = prompt('Paste your MAL XML content here (Simple version for now):');
+      if (xml) {
+        apiFetch('/api/mal/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ xml })
+        }).then(() => {
+          showToast('Import successful!', 'success');
+          init();
+        });
+      }
+    };
+  }
+
+  function renderList() {
+    const container = document.getElementById('list-container');
+    const anime = Object.values(fullList.anime || {});
+    
+    const filtered = currentStatus === 'all' 
+      ? anime 
+      : anime.filter(a => a.myStatus === currentStatus);
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px;">No anime in this category.</div>';
+      return;
+    }
+
+    // Sort by updatedAt descending
+    filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+    container.innerHTML = '<div class="anime-grid">' + filtered.map(a => `
+      <div class="anime-card" style="position: relative;">
+        <a href="/anime/${a.malId}" data-link style="display: block; position: relative;">
+          <img src="${a.posterUrl || '/assets/no-poster.svg'}" alt="${a.title}" onerror="this.src='/assets/no-poster.svg'" style="aspect-ratio: 3/4.2; width: 100%; object-fit: cover;">
+          <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; border: 1px solid var(--accent); color: var(--accent);">
+            ${a.myWatchedEpisodes} / ${a.episodes || '?'}
+          </div>
+        </a>
+        <div class="anime-card-content" style="margin-top: 0;">
+          <a href="/anime/${a.malId}" data-link class="anime-card-title">${a.titleEn || a.title}</a>
+          <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <select onchange="updateStatus(${a.malId}, this.value)" style="width: 100%; background: rgba(0,0,0,0.5); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 8px; padding: 6px 8px; font-size: 0.85rem;">
+              ${['watching', 'completed', 'on_hold', 'dropped', 'plan_to_watch'].map(s => `
+                <option value="${s}" ${a.myStatus === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>
+              `).join('')}
+            </select>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">★ ${a.myScore || 0}</span>
+              <button onclick="removeEntry(${a.malId})" style="color: var(--danger); background: none; font-size: 0.8rem; font-weight: 700;">Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('') + '</div>';
+  }
+
+  window.updateStatus = async (malId, status) => {
+    await apiFetch(`/api/mal/${malId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ myStatus: status })
+    });
+    showToast('Updated status', 'success');
+  };
+
+  window.removeEntry = async (malId) => {
+    if (!confirm('Remove from list?')) return;
+    await apiFetch(`/api/mal/${malId}`, { method: 'DELETE' });
+    init();
+  };
+
+  window.addEventListener('page-load', (e) => {
+    if (e.detail.path === '/mylist') init();
+  }, { once: true });
+
+  init();
+</script>
+
+<style>
+  .tab {
+    background: none;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    white-space: nowrap;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .tab:hover { background: rgba(255,255,255,0.05); }
+  .tab.active {
+    color: var(--accent);
+    background: rgba(56, 189, 248, 0.1);
+  }
+</style>

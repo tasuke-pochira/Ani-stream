@@ -1,0 +1,296 @@
+<div class="page-settings">
+  <h1 style="margin-bottom: 32px;">Settings</h1>
+
+  <div style="display: flex; flex-direction: column; gap: 32px; max-width: 800px;">
+    
+    <section>
+      <h2 style="margin-bottom: 16px; font-size: 1.2rem;">Playback</h2>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--border-radius); display: flex; flex-direction: column; gap: 20px;">
+        <div class="setting-group">
+          <label>Default Player</label>
+          <select id="defaultPlayer">
+            <option value="mpv">MPV (External)</option>
+
+            <option value="browser">Browser (In-App)</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label>Default Scraper Source</label>
+          <select id="defaultScraper">
+            <option value="anicli">ani-cli (Multi-Source)</option>
+            <option value="animepahe">AnimePahe (Direct)</option>
+          </select>
+        </div>
+        <div class="setting-group" style="display: flex; flex-direction: row; gap: 16px;">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <label>MPV Path</label>
+            <input type="text" id="mpvBinPath" placeholder="e.g. mpv">
+          </div>
+
+        </div>
+        <div class="setting-group">
+          <label>Default Quality</label>
+          <select id="defaultQuality">
+            <option value="best">Best</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin-bottom: 16px; font-size: 1.2rem;">Downloads</h2>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--border-radius); display: flex; flex-direction: column; gap: 20px;">
+        <div class="setting-group">
+          <label>Download Directory</label>
+          <input type="text" id="downloadDir">
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin-bottom: 16px; font-size: 1.2rem;">MyAnimeList Auto-Sync</h2>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--border-radius); display: flex; flex-direction: column; gap: 20px;">
+        <div class="setting-group">
+          <label>MAL Client ID <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Get this from MyAnimeList API settings)</span></label>
+          <input type="text" id="malClientId" placeholder="Enter your MAL API Client ID">
+        </div>
+        <div class="setting-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <div>
+            <label style="display: block; margin-bottom: 4px;">Sync Status</label>
+            <span id="mal-sync-status" style="color: var(--text-muted); font-size: 0.9rem;">Not Connected</span>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button id="mal-sync-all-btn" style="padding: 8px 16px; font-size: 0.95rem; background: transparent; border: 1px solid var(--accent); color: var(--accent); display: none;">Force Sync All</button>
+            <button id="mal-login-btn" class="btn-primary" style="padding: 8px 16px; font-size: 0.95rem;">Login to MyAnimeList</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin-bottom: 16px; font-size: 1.2rem;">System</h2>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--border-radius); display: flex; flex-direction: column; gap: 20px;">
+        <div class="setting-group">
+          <label>Ani-cli Path</label>
+          <input type="text" id="aniBinPath" placeholder="e.g. ani-cli">
+        </div>
+        <div class="setting-group">
+          <label>Server Port (Requires Restart)</label>
+          <input type="number" id="port">
+        </div>
+        <div class="setting-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label>Theme</label>
+          <select id="theme">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="margin-bottom: 16px; font-size: 1.2rem;">System Health & Diagnostics</h2>
+      <div style="background: var(--card-bg); padding: 24px; border-radius: var(--border-radius); display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div class="diagnostic-card">
+            <span class="diag-label">App Version</span>
+            <span id="diag-version" class="diag-value">Loading...</span>
+          </div>
+          <div class="diagnostic-card">
+            <span class="diag-label">Git Bash</span>
+            <span id="diag-bash" class="diag-value">Checking...</span>
+          </div>
+          <div class="diagnostic-card">
+            <span class="diag-label">MPV Player</span>
+            <span id="diag-mpv" class="diag-value">Checking...</span>
+          </div>
+          <div class="diagnostic-card">
+            <span class="diag-label">FFmpeg</span>
+            <span id="diag-ffmpeg" class="diag-value">Checking...</span>
+          </div>
+          <div class="diagnostic-card">
+            <span class="diag-label">Browser (for Scraper)</span>
+            <span id="diag-browser" class="diag-value">Checking...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="display: flex; gap: 16px; margin-top: 20px;">
+      <button id="save-settings" class="btn-primary" style="padding: 12px 32px;">Save Settings</button>
+      <button id="refresh-diagnostics" style="background: rgba(255,255,255,0.05); color: var(--text-main);">Refresh Diagnostics</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { apiFetch, showToast } from '/assets/app.js';
+
+  async function init() {
+    const settings = await apiFetch('/api/settings');
+    
+    // Fill values
+    for (const key in settings) {
+      const el = document.getElementById(key);
+      if (el) {
+        if (el.type === 'checkbox') el.checked = settings[key];
+        else el.value = settings[key];
+      }
+    }
+
+    if (settings.malOAuth && settings.malOAuth.accessToken) {
+      const statusEl = document.getElementById('mal-sync-status');
+      const btnEl = document.getElementById('mal-login-btn');
+      const syncAllBtn = document.getElementById('mal-sync-all-btn');
+      if (statusEl) {
+        statusEl.textContent = 'Connected (Auto-Sync Active)';
+        statusEl.style.color = 'var(--success)';
+      }
+      if (btnEl) btnEl.textContent = 'Re-Authenticate';
+      if (syncAllBtn) syncAllBtn.style.display = 'inline-block';
+    }
+
+    const malBtn = document.getElementById('mal-login-btn');
+    if (malBtn) {
+      malBtn.addEventListener('click', async () => {
+        const clientId = document.getElementById('malClientId').value;
+        if (!clientId) return showToast('Please enter a MAL Client ID first', 'error');
+        
+        await apiFetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ malClientId: clientId })
+        });
+        
+        window.open('/api/mal/auth', '_blank', 'width=600,height=800');
+      });
+    }
+
+    const syncAllBtn = document.getElementById('mal-sync-all-btn');
+    if (syncAllBtn) {
+      syncAllBtn.addEventListener('click', async () => {
+        const originalText = syncAllBtn.textContent;
+        syncAllBtn.textContent = 'Syncing...';
+        syncAllBtn.disabled = true;
+        try {
+          const res = await apiFetch('/api/mal/sync-all', { method: 'POST' });
+          if (res) showToast(`Successfully synced ${res.synced} entries to MyAnimeList!`, 'success');
+        } catch (err) {
+          showToast('Failed to sync. Check server console.', 'error');
+        } finally {
+          syncAllBtn.textContent = originalText;
+          syncAllBtn.disabled = false;
+        }
+      });
+    }
+
+    document.getElementById('save-settings').onclick = async () => {
+      const newSettings = {};
+      const inputs = document.querySelectorAll('input, select');
+      inputs.forEach(input => {
+        if (input.id) {
+          newSettings[input.id] = input.type === 'checkbox' ? input.checked : 
+                                 input.type === 'number' ? parseInt(input.value) : input.value;
+        }
+      });
+
+      await apiFetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      });
+      
+      showToast('Settings saved!', 'success');
+      document.documentElement.setAttribute('data-theme', newSettings.theme);
+      refreshDiagnostics();
+    };
+
+    const refreshDiagnostics = async () => {
+      try {
+        const resp = await fetch('/api/settings/diagnostics');
+        const { version, dependencies, browser } = await resp.json();
+        
+        document.getElementById('diag-version').textContent = 'v' + version;
+        document.getElementById('settings-version-text').textContent = 'v' + version;
+        
+        const setStatus = (id, found, text) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.textContent = text || (found ? 'Connected' : 'Missing');
+          el.style.color = found ? '#4ade80' : '#f87171';
+        };
+
+        setStatus('diag-bash', dependencies.gitBash.found);
+        setStatus('diag-mpv', dependencies.mpv.found);
+        setStatus('diag-ffmpeg', dependencies.ffmpeg.found);
+        setStatus('diag-browser', browser.found, browser.name || 'None Found');
+        
+        if (!browser.found) {
+          document.getElementById('diag-browser').title = 'Chrome, Edge, or Brave required for high-quality AnimePahe streams.';
+        }
+      } catch (err) {
+        console.error('Diagnostics failed:', err);
+      }
+    };
+
+    document.getElementById('refresh-diagnostics').onclick = refreshDiagnostics;
+    
+    // Initial diagnostics
+    refreshDiagnostics();
+  }
+
+  window.addEventListener('page-load', (e) => {
+    if (e.detail.path === '/settings') init();
+  }, { once: true });
+
+  init();
+</script>
+
+<div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; color: var(--text-muted); font-size: 0.85rem; padding-bottom: 40px;">
+  AniStream <span id="settings-version-text">v1.0.0</span> &bull; Developed by <a href="https://www.instagram.com/3cstat1c.fl/" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@3cstat1c.fl</a>
+</div>
+
+<style>
+  .setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .setting-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .setting-group input, .setting-group select {
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+    font-size: 0.95rem;
+  }
+  .diagnostic-card {
+    background: rgba(0,0,0,0.2);
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .diag-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+  .diag-value {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+</style>

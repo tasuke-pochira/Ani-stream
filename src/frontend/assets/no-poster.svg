@@ -1,0 +1,6 @@
+<svg width="300" height="450" viewBox="0 0 300 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="450" fill="#1e293b"/>
+  <path d="M150 180C166.569 180 180 166.569 180 150C180 133.431 166.569 120 150 120C133.431 120 120 133.431 120 150C120 166.569 133.431 180 150 180Z" fill="#64748b"/>
+  <path d="M100 240H200L220 320H80L100 240Z" fill="#64748b"/>
+  <text x="50%" y="360" dominant-baseline="middle" text-anchor="middle" fill="#64748b" font-family="sans-serif" font-size="20">No Poster</text>
+</svg>

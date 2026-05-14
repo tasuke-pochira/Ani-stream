@@ -1,0 +1,140 @@
+<div class="page-downloads">
+  <h1 style="margin-bottom: 24px;">Downloads</h1>
+
+  <section id="active-download-section" style="display: none; margin-bottom: 32px;">
+    <h2 style="margin-bottom: 16px; font-size: 1.2rem; color: var(--accent);">Active</h2>
+    <div id="active-container"></div>
+  </section>
+
+  <section id="queue-section" style="display: none; margin-bottom: 32px;">
+    <h2 style="margin-bottom: 16px; font-size: 1.2rem;">Queue</h2>
+    <div id="queue-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom: 16px; font-size: 1.2rem;">Completed</h2>
+    <div id="completed-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+  </section>
+</div>
+
+<script type="module">
+  import { apiFetch, showToast } from '/assets/app.js';
+
+  let ws;
+
+  async function init() {
+    await refresh();
+    setupWebSocket();
+  }
+
+  async function refresh() {
+    try {
+      const data = await apiFetch('/api/downloads');
+      renderDownloads(data);
+    } catch (err) {}
+  }
+
+  function setupWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}`);
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type.startsWith('download:')) {
+        handleDownloadEvent(data);
+      }
+    };
+
+    ws.onclose = () => setTimeout(setupWebSocket, 3000);
+  }
+
+  function handleDownloadEvent(event) {
+    if (event.type === 'download:progress') {
+      const bar = document.querySelector(`[data-id="${event.id}"] .progress-fill`);
+      const text = document.querySelector(`[data-id="${event.id}"] .progress-text`);
+      if (bar) bar.style.width = `${event.percent}%`;
+      if (text) text.textContent = `${Math.round(event.percent)}%`;
+    } else {
+      // Refresh full list on complete/error
+      refresh();
+    }
+  }
+
+  function renderDownloads(db) {
+    const activeSection = document.getElementById('active-download-section');
+    const activeContainer = document.getElementById('active-container');
+    const queueSection = document.getElementById('queue-section');
+    const queueContainer = document.getElementById('queue-container');
+    const completedContainer = document.getElementById('completed-container');
+
+    // Active
+    if (db.active) {
+      activeSection.style.display = 'block';
+      activeContainer.innerHTML = `
+        <div class="download-item active" data-id="${db.active.id}" style="background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); border: 1px solid var(--accent);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+            <div style="font-weight: 600;">${db.active.title} — Episode ${db.active.episode}</div>
+            <div class="progress-text" style="color: var(--accent);">0%</div>
+          </div>
+          <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+            <div class="progress-fill" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease;"></div>
+          </div>
+          <div style="margin-top: 12px; font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>Quality: ${db.active.quality}</span>
+            <button onclick="cancelDownload('${db.active.id}')" style="color: var(--danger); background: none; padding: 0;">Cancel</button>
+          </div>
+        </div>
+      `;
+    } else {
+      activeSection.style.display = 'none';
+    }
+
+    // Queue
+    if (db.queue.length > 0) {
+      queueSection.style.display = 'block';
+      queueContainer.innerHTML = db.queue.map(item => `
+        <div class="download-item" style="background: var(--card-bg); padding: 12px 20px; border-radius: var(--border-radius); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 500;">${item.title} — Ep ${item.episode}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">${item.quality}</div>
+          </div>
+          <button onclick="cancelDownload('${item.id}')" style="color: var(--text-muted); background: none;">✕</button>
+        </div>
+      `).join('');
+    } else {
+      queueSection.style.display = 'none';
+    }
+
+    // Completed
+    completedContainer.innerHTML = db.completed.length ? db.completed.map(item => `
+      <div class="download-item" style="background: var(--card-bg); padding: 12px 20px; border-radius: var(--border-radius); display: flex; justify-content: space-between; align-items: center; opacity: ${item.status === 'completed' ? 1 : 0.6};">
+        <div>
+          <div style="font-weight: 500;">${item.title} — Ep ${item.episode}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            ${item.status === 'completed' ? 'Completed' : 'Failed: ' + item.error} • ${new Date(item.downloadedAt || item.addedAt).toLocaleDateString()}
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button onclick="deleteDownload('${item.id}')" style="color: var(--text-muted); background: none;">Delete</button>
+        </div>
+      </div>
+    `).join('') : '<div style="color: var(--text-muted); padding: 20px; text-align: center;">No completed downloads yet.</div>';
+  }
+
+  window.cancelDownload = async (id) => {
+    if (!confirm('Are you sure you want to cancel/remove this download?')) return;
+    await apiFetch(`/api/downloads/${id}`, { method: 'DELETE' });
+    refresh();
+  };
+
+  window.deleteDownload = async (id) => {
+    await apiFetch(`/api/downloads/${id}`, { method: 'DELETE' });
+    refresh();
+  };
+
+  window.addEventListener('page-load', (e) => {
+    if (e.detail.path === '/downloads') init();
+  }, { once: true });
+
+  init();
+</script>
